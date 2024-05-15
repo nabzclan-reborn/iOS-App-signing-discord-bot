@@ -7,35 +7,46 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Replace these with your actual tokens
+NABZLINKS_TOKEN = "Nabzlinks token here"
+API_ARIES_TOKEN = "API Aries token here"
+DISCORD_TOKEN = "discord token here"
+
+# URLs
+SHORTEN_API_URL = "https://nabz.link/api"
+SIGNING_API_URL = "https://api.api-aries.online/v1/cococloud/app-signer"
+CERT_STATUS_URL = "https://api.cococloud-signing.online/cert-status/api"
+
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
 
 @bot.command(name='sign')
-async def sign_app(ctx, url=None):
+async def sign_app(ctx):
     if not ctx.message.attachments:
-        await ctx.send("Please attach a IPA file. - [Youtube Tutorial](https://m.youtube.com/watch?v=Tdt13UOX3xI&feature=youtu.be)")
+        await ctx.send("Please attach an IPA file. - [YouTube Tutorial](https://m.youtube.com/watch?v=Tdt13UOX3xI&feature=youtu.be)")
         return
 
     process_embed = discord.Embed(title="Signing App", description="Signing the app. Please wait...")
     process_message = await ctx.send(embed=process_embed)
 
     attachment_url = ctx.message.attachments[0].url
-    shorten_api_url = "https://nabz.link/api"
-    params = {
-        "api": "Nabzlinks token here", # place your nabzlinks token here this can be found by accessing this url "https://nabz.link/member/tools/api"
-        "url": attachment_url, # ignore
-        "type": 0 # ignore
-    }
+
+    # Shorten the URL
     try:
-        shorten_response = requests.get(shorten_api_url, params=params)
+        params = {
+            "api": NABZLINKS_TOKEN,
+            "url": attachment_url,
+            "type": 0
+        }
+        shorten_response = requests.get(SHORTEN_API_URL, params=params)
         shorten_response.raise_for_status()
         shortened_url = shorten_response.json().get("shortenedUrl")
         if not shortened_url:
             await process_message.edit(content="Error shortening the URL. Please try again.")
             return
 
-        api_url = f"https://api.api-aries.online/v1/cococloud/app-signer?app={shortened_url}"
+        api_url = f"{SIGNING_API_URL}?app={shortened_url}"
         process_embed.title = "Shortened URL"
         process_embed.description = "URL has been shortened successfully. Please wait..."
         await process_message.edit(embed=process_embed)
@@ -44,9 +55,9 @@ async def sign_app(ctx, url=None):
         await process_message.edit(content="Error shortening the URL. Please try again.")
         return
 
-    api_token = "API Aries token here"  # place your API-Aries token here this can be found by accessing this url "https://dashboard.api-aries.online/"
-    headers = {"APITOKEN": api_token}
+    headers = {"APITOKEN": API_ARIES_TOKEN}
 
+    # Request app signing
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
@@ -55,17 +66,22 @@ async def sign_app(ctx, url=None):
         bundle_id = json_response.get("bundle_id", "N/A")
         plist_url = json_response.get("plist_url", "N/A")
 
-        cert_status_url = "https://api.cococloud-signing.online/cert-status/api"
-        cert_status_response = requests.get(cert_status_url, headers=headers)
-        cert_status_response.raise_for_status()
-        cert_status_json = cert_status_response.json()
-        certificate_status = cert_status_json.get("CertificateStatus", "N/A")
-        certificate_name = cert_status_json.get("CertificateName", "N/A")
+        # Get certificate status
+        try:
+            cert_status_response = requests.get(CERT_STATUS_URL, headers=headers)
+            cert_status_response.raise_for_status()
+            cert_status_json = cert_status_response.json()
+            certificate_status = cert_status_json.get("CertificateStatus", "N/A")
+            certificate_name = cert_status_json.get("CertificateName", "N/A")
 
-        if certificate_status == 'Signed':
-            certificate_status = 'Signed 🟢'
-        elif certificate_status == 'Revoked':
-            certificate_status = 'Revoked 🔴'
+            if certificate_status == 'Signed':
+                certificate_status = 'Signed 🟢'
+            elif certificate_status == 'Revoked':
+                certificate_status = 'Revoked 🔴'
+        except requests.exceptions.RequestException as e:
+            print(f"Error getting certificate status: {e}")
+            certificate_status = 'Unknown'
+            certificate_name = 'Unknown'
 
         process_embed.title = "App Signing Information"
         process_embed.description = "The app has been successfully signed:"
@@ -80,4 +96,4 @@ async def sign_app(ctx, url=None):
         print(f"Error making API request: {e}")
         await process_message.edit(content="Error signing the app. Please try again.")
 
-bot.run("discord token here")  # place your discord token this can be found here: https://discord.com/developers/applications
+bot.run(DISCORD_TOKEN)
