@@ -8,11 +8,11 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Replace these with your actual tokens
-NABZLINKS_TOKEN = "Nabzlinks token here"
-API_ARIES_TOKEN = "API Aries token here"
-DISCORD_TOKEN = "discord token here"
+NABZLINKS_TOKEN = "Nabzlinks token here" # https://nabz.link/member/tools/api
+API_ARIES_TOKEN = "API Aries token here" # https://dashboard.api-aries.online/
+DISCORD_TOKEN = "discord token here"# https://discord.com/developers/applications
 
-# URLs
+# URLs - ignore these
 SHORTEN_API_URL = "https://nabz.link/api"
 SIGNING_API_URL = "https://api.api-aries.online/v1/cococloud/app-signer"
 CERT_STATUS_URL = "https://api.cococloud-signing.online/cert-status/api"
